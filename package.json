@@ -1,19 +1,19 @@
 {
-  "name": "n8n-nodes-<...>",
+  "name": "n8n-nodes-tesseractjs",
   "version": "0.1.0",
-  "description": "",
+  "description": "A n8n module that exposes Tesseract.js, an OCR library that can detect text on images",
   "keywords": [
     "n8n-community-node-package"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://github.com/jreyesr/n8n-nodes-tesseractjs",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "jreyesr",
+    "email": "npm@jreyesr.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/<...>/n8n-nodes-<...>.git"
+    "url": "https://github.com/jreyesr/n8n-nodes-tesseractjs.git"
   },
   "engines": {
     "node": ">=18.10",
@@ -35,13 +35,9 @@
   ],
   "n8n": {
     "n8nNodesApiVersion": 1,
-    "credentials": [
-      "dist/credentials/ExampleCredentialsApi.credentials.js",
-      "dist/credentials/HttpBinApi.credentials.js"
-    ],
+    "credentials": [],
     "nodes": [
-      "dist/nodes/ExampleNode/ExampleNode.node.js",
-      "dist/nodes/HttpBin/HttpBin.node.js"
+      "dist/nodes/Tesseract/TesseractNode.node.js"
     ]
   },
   "devDependencies": {
@@ -55,5 +51,8 @@
   },
   "peerDependencies": {
     "n8n-workflow": "*"
+  },
+  "dependencies": {
+    "tesseract.js": "^5.1.1"
   }
 }
