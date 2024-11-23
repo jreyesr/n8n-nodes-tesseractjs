@@ -37,7 +37,7 @@
     "n8nNodesApiVersion": 1,
     "credentials": [],
     "nodes": [
-      "dist/nodes/Tesseract/TesseractNode.node.js"
+      "dist/nodes/Tesseract/Tesseract.node.js"
     ]
   },
   "devDependencies": {
