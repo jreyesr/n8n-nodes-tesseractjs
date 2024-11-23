@@ -109,4 +109,11 @@ The Binary file with that name will be read and processed.
 
 Initial version, contains the **Extract text** and **Extract boxes** operations.
 
+## Developer info
 
+### Releasing changes
+
+1. Bump the version in package.json. We use SemVer.
+2. Add an entry to the top of CHANGELOG.md describing the changes.
+3. Push changes, open a PR and merge it to master branch (if developing on another branch)
+4. Create a release. This will kick off the CI which will build and publish the package on NPM

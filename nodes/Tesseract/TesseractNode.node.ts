@@ -75,13 +75,31 @@ export class TesseractNode implements INodeType {
 				default: 'data',
 				description: 'The name of the incoming field containing the image to be processed',
 			},
+			{
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add option',
+				default: {},
+				options: [
+					{
+						displayName: 'Language',
+						name: 'language',
+						type: 'string',
+						default: 'eng',
+						description: 'Choose from the lang codes in https://tesseract-ocr.github.io/tessdoc/Data-Files#data-files-for-version-400-november-29-2016',
+						noDataExpression: true
+					}
+				]
+			}
 		],
 	};
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const operation = this.getNodeParameter('operation', 0, 'ocr') as 'ocr' | 'boxes';
-		const worker = await createWorker('eng');
+		const lang = this.getNodeParameter('options.language', 0, 'eng') as string;
+		const worker = await createWorker(lang);
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
