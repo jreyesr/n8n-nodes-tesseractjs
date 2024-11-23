@@ -2,17 +2,21 @@ name: Release on NPM
 
 on:
   release:
-    types: [created]
+    types: [ created ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile && pnpm run build
       # - run: npm test
 
   release:
@@ -20,11 +24,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
-      - run: npm ci && npm run build
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile && pnpm run build
       - name: Publish package on NPM 📦
         run: npm publish
         env:
