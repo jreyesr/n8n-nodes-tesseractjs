@@ -91,12 +91,31 @@ older version, please [raise an issue](https://github.com/jreyesr/n8n-nodes-tess
 
 ## Usage
 
+### Input Image Field Name
+
 All Operations of this node have a field **Input Image Field Name**, where the _name_ of a Binary item should be
 provided:
 
 ![a screenshot of the node UI showing an input item with Binary data](imgs/iifn.png)
 
 The Binary file with that name will be read and processed.
+
+### Detect on Entire Image?
+
+It's possible to limit the OCR to a certain segment of an image, by toggling the **Detect on Entire Image?** switch
+to Off. When doing so, it's necessary to provide the top and left coordinates of the desired bounding box, and the width
+and height of the box. For example:
+
+![a screenshot of the node settings showing that when the Detect on Entire Image switch is Off, there are fields to provide the top, left, width and height of the desired bounding box](imgs/bbox.png)
+
+This could delineate a region like this:
+
+![an image with some text and a light green box that covers only part of it](imgs/bbox_vis.png)
+
+When performing OCR on that region, it'd only return the text that was contained in that box, even truncating words of
+they lie halfway across the bounding box's borders:
+
+![an image with some text and the OCR detections overlaid, showing that only text that lies inside the area of interest has been recognized](imgs/bbox_ocr.png)
 
 ## Resources
 
