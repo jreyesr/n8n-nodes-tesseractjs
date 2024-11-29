@@ -76,6 +76,69 @@ export class TesseractNode implements INodeType {
 				description: 'The name of the incoming field containing the image to be processed',
 			},
 			{
+				displayName: 'Detect on Entire Image?',
+				name: 'detectEntireImage',
+				type: 'boolean',
+				default: true,
+				description: 'Whether to perform OCR on the entire image or on a box',
+			},
+			{
+				displayName: 'Top Y',
+				name: 'top',
+				type: 'number',
+				default: 0,
+				typeOptions: {
+					minValue: 0
+				},
+				displayOptions: {
+					show: {
+						detectEntireImage: [false],
+					}
+				}
+			},
+			{
+				displayName: 'Left X',
+				name: 'left',
+				type: 'number',
+				default: 0,
+				typeOptions: {
+					minValue: 0
+				},
+				displayOptions: {
+					show: {
+						detectEntireImage: [false],
+					}
+				}
+			},
+			{
+				displayName: 'Width',
+				name: 'width',
+				type: 'number',
+				default: 100,
+				typeOptions: {
+					minValue: 0
+				},
+				displayOptions: {
+					show: {
+						detectEntireImage: [false],
+					}
+				}
+			},
+			{
+				displayName: 'Height',
+				name: 'height',
+				type: 'number',
+				default: 100,
+				typeOptions: {
+					minValue: 0
+				},
+				displayOptions: {
+					show: {
+						detectEntireImage: [false],
+					}
+				}
+			},
+			{
 				displayName: 'Options',
 				name: 'options',
 				type: 'collection',
@@ -103,16 +166,25 @@ export class TesseractNode implements INodeType {
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
-				let newItem: INodeExecutionData, imageFieldName: string;
+				let newItem: INodeExecutionData;
+				const imageFieldName: string = this.getNodeParameter('inputDataFieldName', itemIndex, 'data') as string;
+				const entireImage: boolean = this.getNodeParameter('detectEntireImage', itemIndex, true) as boolean;
+				let boundingBox;
+				if (!entireImage) {
+					boundingBox = {
+						top: this.getNodeParameter('top', itemIndex, 0) as number,
+						left: this.getNodeParameter('left', itemIndex, 0) as number,
+						width: this.getNodeParameter('width', itemIndex, 100) as number,
+						height: this.getNodeParameter('height', itemIndex, 100) as number,
+					}
+				}
 				switch (operation) {
 					case "ocr":
-						imageFieldName = this.getNodeParameter('inputDataFieldName', itemIndex, 'data') as string;
-						newItem = await performOCR.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName);
+						newItem = await performOCR.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, boundingBox);
 						break;
 					case "boxes":
-						imageFieldName = this.getNodeParameter('inputDataFieldName', itemIndex, 'data') as string;
 						const granularity = this.getNodeParameter('granularity', itemIndex, 'words') as "paragraphs" | "lines" | "words" | "symbols";
-						newItem = await extractBoxes.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, granularity);
+						newItem = await extractBoxes.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, granularity, boundingBox);
 						break;
 				}
 
