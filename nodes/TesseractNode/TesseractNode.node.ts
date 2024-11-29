@@ -11,7 +11,7 @@ import {createWorker} from "tesseract.js";
 export class TesseractNode implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Tesseract',
-		name: 'tesseract',
+		name: 'tesseractNode',
 		subtitle: '={{ $parameter["operation"] }}',
 		icon: 'file:tesseract.svg',
 		group: ['transform'],
