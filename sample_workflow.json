@@ -1,0 +1,270 @@
+{
+  "name": "Tesseract sample",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/naptha/tesseract.js/refs/heads/master/benchmarks/data/testocr.png",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -860,
+        -100
+      ],
+      "id": "713fe593-db08-4961-8712-0245da00e687",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "multiStep",
+        "operations": {
+          "operations": [
+            {
+              "operation": "text",
+              "text": "=\"{{ $json.blocks[0].text.trim() }}\" ({{ $json.blocks[0].confidence.toFixed(0) }}%)",
+              "fontSize": 9,
+              "fontColor": "#FF0000",
+              "positionX": "={{ $json.blocks[0].bbox.x0 }}",
+              "positionY": "={{ $json.blocks[0].bbox.y0 - 2 }}",
+              "font": "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed.ttf"
+            },
+            {
+              "operation": "draw",
+              "color": "#FF0000E0",
+              "startPositionX": "={{ $json.blocks[0].bbox.x0 }}",
+              "startPositionY": "={{ $json.blocks[0].bbox.y0 }}",
+              "endPositionX": "={{ $json.blocks[0].bbox.x1 }}",
+              "endPositionY": "={{ $json.blocks[0].bbox.y1 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b8a6d53c-cd89-41ef-b366-bcc08949d0d5",
+      "name": "Edit Image"
+    },
+    {
+      "parameters": {},
+      "id": "7f6a7604-2d06-45c3-a517-93c7c0e3fe31",
+      "name": "When clicking \"Execute Workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1080,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5f661f09-8f49-4aa3-84cc-2739e83387ff",
+              "leftValue": "={{ $json.blocks }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -200,
+        -100
+      ],
+      "id": "bd10aeb4-1c05-437a-b01d-1b26bd5d498d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "414ad4da-ff83-4eed-b3b6-c857cda5c4e3",
+              "name": "blocks",
+              "value": "={{ $json.blocks.slice(1) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "id": "309b4005-57c0-4dc4-b6fd-4f1b13947057",
+      "name": "Pop first element"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        60,
+        -220
+      ],
+      "id": "56cea8dc-2803-47cb-91d2-48125648a410",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "operation": "draw",
+        "color": "#00ff00e0",
+        "startPositionX": "={{ $('Tesseract').params.left }}",
+        "startPositionY": "={{ $('Tesseract').params.top }}",
+        "endPositionX": "={{ $('Tesseract').params.left + $('Tesseract').params.width }}",
+        "endPositionY": "={{ $('Tesseract').params.top + $('Tesseract').params.height }}",
+        "cornerRadius": 2,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        -100
+      ],
+      "id": "7995541f-b18f-4132-84e4-6ef07b7a2a4a",
+      "name": "Draw detection area"
+    },
+    {
+      "parameters": {
+        "operation": "boxes",
+        "detectEntireImage": false,
+        "top": 80,
+        "left": 50,
+        "width": 110,
+        "height": 110,
+        "options": {}
+      },
+      "type": "n8n-nodes-tesseractjs.tesseractNode",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        -100
+      ],
+      "id": "8b8c1140-4224-4c49-af7e-ad45b53fe57a",
+      "name": "Tesseract"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Image": {
+      "main": [
+        [
+          {
+            "node": "Pop first element",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking \"Execute Workflow\"": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pop first element": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draw detection area": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Tesseract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tesseract": {
+      "main": [
+        [
+          {
+            "node": "Draw detection area",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "42ff7fb7-d3b5-4537-91a4-04363c251491",
+  "meta": {
+    "instanceId": "080ac704083142d467ab8f09c32e4cef70809dd0c2339539414566a5cdcf51a4"
+  },
+  "id": "ANwj8RzALndkypMP",
+  "tags": []
+}

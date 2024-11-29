@@ -21,6 +21,8 @@ or JPEG).
 Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community
 nodes documentation.
 
+You can quickly get started by importing [the sample playbook](./sample_workflow.json).
+
 ## Operations
 
 ### Extract text
