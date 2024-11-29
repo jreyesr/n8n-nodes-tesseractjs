@@ -128,6 +128,11 @@ they lie halfway across the bounding box's borders:
 
 Initial version, contains the **Extract text** and **Extract boxes** operations.
 
+## v1.0.1
+
+* Fix the installation on N8N instances from NPM
+* Add the toggle switch for specifying a bounding box
+
 ## Developer info
 
 ### Releasing changes
