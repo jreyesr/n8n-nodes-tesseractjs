@@ -226,7 +226,78 @@ export class TesseractNode implements INodeType {
 								]
 							}
 						]
-					}
+					},
+					{
+						displayName: 'Character Lists',
+						name: 'charlists',
+						type: 'fixedCollection',
+						typeOptions: {
+							multipleValues: false
+						},
+						default: {charlists: {}},
+						options: [
+							{
+								displayName: 'Character Lists',
+								name: 'charlists',
+								values: [
+									{
+										displayName: 'Only Allow Some Characters',
+										name: 'enableWhitelist',
+										type: 'boolean',
+										default: false,
+										noDataExpression: true,
+										description: 'Whether to only recognize some characters',
+									},
+									{
+										displayName: 'Allowed Characters',
+										name: 'whitelist',
+										type: 'string',
+										description: 'A string containing the allowed characters, one after the other',
+										placeholder: 'e.g. AEIOU',
+										default: '',
+										displayOptions: {
+											show: {
+												enableWhitelist: [true],
+											}
+										},
+									},
+									{
+										displayName: 'Ensure you include a space in the allowed characters if you want the recognized text to be split by words',
+										name: 'spaceWhitelistNotice',
+										default: '',
+										type: 'notice',
+										displayOptions: {
+											show: {
+												enableWhitelist: [true],
+												'/granularity': ['words']
+											},
+										},
+									},
+									{
+										displayName: 'Disallow Some Characters',
+										name: 'enableBlacklist',
+										type: 'boolean',
+										default: false,
+										noDataExpression: true,
+										description: 'Whether to ignore some characters',
+									},
+									{
+										displayName: 'Disallowed Characters',
+										name: 'blacklist',
+										type: 'string',
+										description: 'A string containing the ignored characters, one after the other',
+										placeholder: 'e.g. AEIOU',
+										default: '',
+										displayOptions: {
+											show: {
+												enableBlacklist: [true],
+											}
+										},
+									},
+								]
+							}
+						]
+					},
 				]
 			}
 		],
@@ -243,9 +314,20 @@ export class TesseractNode implements INodeType {
 		await worker.setParameters({tessedit_pageseg_mode: PSM[psm]})
 
 		const shouldForceResolution = this.getNodeParameter('options.resolution.resolution.forceResolution', 0, false) as boolean;
-		if(shouldForceResolution) {
+		if (shouldForceResolution) {
 			const newResolution = this.getNodeParameter('options.resolution.resolution.dpi', 0, 300) as number;
 			await worker.setParameters({user_defined_dpi: newResolution.toFixed()})
+		}
+
+		if (this.getNodeParameter('options.charlists.charlists.enableBlacklist', 0, false)) {
+			const tessedit_char_blacklist = this.getNodeParameter('options.charlists.charlists.blacklist', 0, "") as string;
+			this.logger.debug('Setting blacklist', {value: tessedit_char_blacklist})
+			await worker.setParameters({tessedit_char_whitelist: tessedit_char_blacklist})
+		}
+		if (this.getNodeParameter('options.charlists.charlists.enableWhitelist', 0, false)) {
+			const tessedit_char_whitelist = this.getNodeParameter('options.charlists.charlists.whitelist', 0, "") as string;
+			this.logger.debug('Setting whitelist', {value: tessedit_char_whitelist})
+			await worker.setParameters({tessedit_char_whitelist})
 		}
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
