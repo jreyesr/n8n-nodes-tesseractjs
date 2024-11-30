@@ -236,9 +236,10 @@ export class TesseractNode implements INodeType {
 		const items = this.getInputData();
 		const operation = this.getNodeParameter('operation', 0, 'ocr') as 'ocr' | 'boxes';
 		const lang = this.getNodeParameter('options.language', 0, 'eng') as string;
-		const psm = this.getNodeParameter('options.psm', 0, 'SINGLE_BLOCK') as 'SINGLE_BLOCK' | 'SINGLE_COLUMN' | 'SINGLE_LINE' | 'SINGLE_WORD' | 'SPARSE_TEXT';
 
 		const worker = await createWorker(lang);
+
+		const psm = this.getNodeParameter('options.psm', 0, 'SINGLE_BLOCK') as 'SINGLE_BLOCK' | 'SINGLE_COLUMN' | 'SINGLE_LINE' | 'SINGLE_WORD' | 'SPARSE_TEXT';
 		await worker.setParameters({tessedit_pageseg_mode: PSM[psm]})
 
 		const shouldForceResolution = this.getNodeParameter('options.resolution.resolution.forceResolution', 0, false) as boolean;
