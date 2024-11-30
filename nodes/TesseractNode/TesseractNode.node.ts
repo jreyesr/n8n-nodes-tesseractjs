@@ -186,6 +186,46 @@ export class TesseractNode implements INodeType {
 								description: 'Find as much text as possible in no particular order. Use when text is scattered across the image.'
 							},
 						]
+					},
+					{
+						displayName: 'Resolution',
+						name: 'resolution',
+						type: 'fixedCollection',
+						description: 'Customize resolution',
+						typeOptions: {
+							multipleValues: false
+						},
+						default: {resolution: {}},
+						options: [
+							{
+								displayName: 'Resolution',
+								name: 'resolution',
+								values: [
+									{
+										displayName: 'Force Specific Resolution',
+										name: 'forceResolution',
+										type: 'boolean',
+										default: false,
+										noDataExpression: true,
+										description: 'Whether to force a specific resolution (default is to let Tesseract autodetect it)',
+									},
+									{
+										displayName: 'New Resolution',
+										name: 'dpi',
+										type: 'number',
+										default: 300,
+										typeOptions: {
+											minValue: 1
+										},
+										displayOptions: {
+											show: {
+												forceResolution: [true],
+											}
+										},
+									},
+								]
+							}
+						]
 					}
 				]
 			}
@@ -200,6 +240,12 @@ export class TesseractNode implements INodeType {
 
 		const worker = await createWorker(lang);
 		await worker.setParameters({tessedit_pageseg_mode: PSM[psm]})
+
+		const shouldForceResolution = this.getNodeParameter('options.resolution.resolution.forceResolution', 0, false) as boolean;
+		if(shouldForceResolution) {
+			const newResolution = this.getNodeParameter('options.resolution.resolution.dpi', 0, 300) as number;
+			await worker.setParameters({user_defined_dpi: newResolution.toFixed()})
+		}
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
