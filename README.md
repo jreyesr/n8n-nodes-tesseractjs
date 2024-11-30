@@ -149,10 +149,16 @@ Or, when disallowing all uppercase characters:
 
 Initial version, contains the **Extract text** and **Extract boxes** operations.
 
-## v1.0.1
+### v1.0.1
 
 * Fix the installation on N8N instances from NPM
 * Add the toggle switch for specifying a bounding box
+
+### v1.1.0
+
+* Add the ability to control the Tesseract PSM (block, column, single line, single word, sparse text)
+* Add a setting to override the detected DPI of the image
+* Add the ability to specify the whitelist and blacklist
 
 ## Developer info
 
