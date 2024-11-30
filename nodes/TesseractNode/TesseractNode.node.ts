@@ -204,8 +204,8 @@ export class TesseractNode implements INodeType {
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
 				let newItem: INodeExecutionData;
-				const imageFieldName: string = this.getNodeParameter('inputDataFieldName', itemIndex, 'data') as string;
-				const entireImage: boolean = this.getNodeParameter('detectEntireImage', itemIndex, true) as boolean;
+				const imageFieldName = this.getNodeParameter('inputDataFieldName', itemIndex, 'data') as string;
+				const entireImage = this.getNodeParameter('detectEntireImage', itemIndex, true) as boolean;
 				let boundingBox;
 				if (!entireImage) {
 					boundingBox = {
