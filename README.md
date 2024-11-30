@@ -119,6 +119,25 @@ they lie halfway across the bounding box's borders:
 
 ![an image with some text and the OCR detections overlaid, showing that only text that lies inside the area of interest has been recognized](imgs/bbox_ocr.png)
 
+### Force Resolution
+
+This option can be used if Tesseract can't autodetect the image's resolution, such as a PNG that doesn't carry that
+information.
+
+### Controlling which characters can and can't be recognized
+
+If you know that the source image can only have certain characters (e.g. license plates that can only have uppercase
+letters, numbers or a dash) or can't have certain characters (e.g. if Tesseract is inserting question marks when there
+aren't any), you can explicitly specify which characters will be allowed or which characters will be ignored.
+
+For example, when only the digits 0-9 are allowed, and splitting on words:
+
+![a screenshot of text where only a number 12 has been detected. All other characters, which are letters, are ignored](imgs/whitelist.png)
+
+Or, when disallowing all uppercase characters:
+
+![a screenshot of text where the capital letters that start each sentence have been ignored](imgs/blacklist.png)
+
 ## Resources
 
 * [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
