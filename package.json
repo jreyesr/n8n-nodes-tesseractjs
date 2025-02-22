@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-tesseractjs",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A n8n module that exposes Tesseract.js, an OCR library that can detect text on images",
   "keywords": [
     "n8n-community-node-package"
@@ -53,6 +53,6 @@
     "n8n-workflow": "*"
   },
   "dependencies": {
-    "tesseract.js": "^5.1.1"
+    "tesseract.js": "^6.0.0"
   }
 }

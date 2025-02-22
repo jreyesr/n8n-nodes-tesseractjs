@@ -160,11 +160,15 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 * Add a setting to override the detected DPI of the image
 * Add the ability to specify the whitelist and blacklist
 
+### v1.2.0
+
+* Update the Tesseract.JS version to v6.0.0. No user-facing changes. Please [report any issues that you find](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues)!
+
 ## Developer info
 
 ### Releasing changes
 
 1. Bump the version in package.json. We use SemVer.
-2. Add an entry to the top of CHANGELOG.md describing the changes.
+2. Add an entry on the [Version History](#version-history) section above describing the changes.
 3. Push changes, open a PR and merge it to master branch (if developing on another branch)
 4. Create a release. This will kick off the CI which will build and publish the package on NPM
