@@ -124,6 +124,17 @@ they lie halfway across the bounding box's borders:
 This option can be used if Tesseract can't autodetect the image's resolution, such as a PNG that doesn't carry that
 information.
 
+### Timeout
+
+If you'd like to abort OCR when a certain image takes too long to process, set the Timeout option (in milliseconds).
+
+Any items that take longer than that time to process will be interrupted and raise an error.
+Set [On Error](https://community.n8n.io/t/issue-with-continue-using-error-output-never-any-output/57194) on the node's
+Settings if you want execution to continue.
+
+Items that time out will have the `error` or `timeout` key set in the JSON output, so they can be extracted later if
+desired. Items that have a `confidence` were successfully processed.
+
 ### Controlling which characters can and can't be recognized
 
 If you know that the source image can only have certain characters (e.g. license plates that can only have uppercase
@@ -162,9 +173,23 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 
 ### v1.2.0
 
-* Update the Tesseract.JS version to v6.0.0. No user-facing changes. Please [report any issues that you find](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues)!
+* Update the Tesseract.JS version to v6.0.0. No user-facing changes.
+	Please [report any issues that you find](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues)!
+
+### v1.3.0
+
+* Add a Timeout option to control the max processing time (
+	closes [#3](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/3))
 
 ## Developer info
+
+```shell
+pnpm link --global
+pnpm run dev # or pnpm build the first time or when adding assets, such as the node's logo
+
+# in ~/.n8n/custom
+pnpm link n8n-nodes-tesseractjs
+```
 
 ### Releasing changes
 

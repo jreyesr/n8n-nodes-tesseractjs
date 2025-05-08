@@ -298,6 +298,13 @@ export class TesseractNode implements INodeType {
 							}
 						]
 					},
+					{
+						displayName: 'Timeout',
+						name: 'timeout',
+						type: 'number',
+						description: 'If set, processing will be canceled if an image takes more than this number of milliseconds',
+						default: null,
+					},
 				]
 			}
 		],
@@ -344,20 +351,31 @@ export class TesseractNode implements INodeType {
 						height: this.getNodeParameter('height', itemIndex, 100) as number,
 					}
 				}
+				const timeout = this.getNodeParameter('options.timeout', itemIndex, 0) as number;
 				switch (operation) {
 					case "ocr":
-						newItem = await performOCR.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, boundingBox);
+						newItem = await performOCR.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, boundingBox, timeout);
 						break;
 					case "boxes":
 						const granularity = this.getNodeParameter('granularity', itemIndex, 'words') as "paragraphs" | "lines" | "words" | "symbols";
-						newItem = await extractBoxes.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, granularity, boundingBox);
+						newItem = await extractBoxes.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, granularity, boundingBox, timeout);
 						break;
 				}
-
 				items[itemIndex] = newItem;
+				if(newItem.json?.timeout === true){
+					throw new NodeOperationError(this.getNode(), newItem.json, {
+						itemIndex,
+						message: "Timeout while OCRing item"
+					})
+
+				}
 			} catch (error) {
 				if (this.continueOnFail()) {
-					items[itemIndex] = {json: this.getInputData(itemIndex)[0].json, error, pairedItem: itemIndex};
+					items[itemIndex] = {
+						json: items[itemIndex].json,
+						binary: this.getInputData()[itemIndex]?.binary,
+						error,
+						pairedItem: itemIndex};
 				} else {
 					if (error.context) {
 						error.context.itemIndex = itemIndex;
