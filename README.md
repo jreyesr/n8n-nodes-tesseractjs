@@ -183,12 +183,18 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 
 ## Developer info
 
+```bash
+npm i
+```
+
+To add this node to a local N8N install:
+
 ```shell
-pnpm link --global
-pnpm run dev # or pnpm build the first time or when adding assets, such as the node's logo
+npm link
+npm run dev # or npm build the first time or when adding assets, such as the node's logo
 
 # in ~/.n8n/custom
-pnpm link n8n-nodes-tesseractjs
+npm link n8n-nodes-tesseractjs
 ```
 
 ### Releasing changes

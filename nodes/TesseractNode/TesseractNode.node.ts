@@ -2,7 +2,8 @@ import {
 	type IExecuteFunctions,
 	type INodeExecutionData,
 	INodeType,
-	INodeTypeDescription,
+	INodeTypeDescription, JsonObject,
+	NodeConnectionType,
 	NodeOperationError
 } from 'n8n-workflow';
 import {extractBoxes, performOCR} from "./operations";
@@ -20,8 +21,10 @@ export class TesseractNode implements INodeType {
 		defaults: {
 			name: 'Tesseract',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node
+		inputs: [NodeConnectionType.Main],
+		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
+		outputs: [NodeConnectionType.Main],
 		properties: [
 			{
 				displayName: 'Operation',
@@ -144,6 +147,7 @@ export class TesseractNode implements INodeType {
 				type: 'collection',
 				placeholder: 'Add option',
 				default: {},
+				// eslint-disable-next-line n8n-nodes-base/node-param-collection-type-unsorted-items
 				options: [
 					{
 						displayName: 'Language',
@@ -365,7 +369,7 @@ export class TesseractNode implements INodeType {
 				outputItems.push(...newItems);
 				let failedItem;
 				if ((failedItem = newItems.find(item => item.json?.timeout === true)) !== undefined) {
-					throw new NodeOperationError(this.getNode(), failedItem.json, {
+					throw new NodeOperationError(this.getNode(), failedItem.json as JsonObject, {
 						itemIndex,
 						message: "Timeout while OCRing item"
 					})
