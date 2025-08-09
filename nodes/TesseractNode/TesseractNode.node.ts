@@ -312,6 +312,7 @@ export class TesseractNode implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
+		const outputItems: INodeExecutionData[] = [];
 		const operation = this.getNodeParameter('operation', 0, 'ocr') as 'ocr' | 'boxes';
 		const lang = this.getNodeParameter('options.language', 0, 'eng') as string;
 
@@ -339,7 +340,7 @@ export class TesseractNode implements INodeType {
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			try {
-				let newItem: INodeExecutionData;
+				let newItems: INodeExecutionData[];
 				const imageFieldName = this.getNodeParameter('inputDataFieldName', itemIndex, 'data') as string;
 				const entireImage = this.getNodeParameter('detectEntireImage', itemIndex, true) as boolean;
 				let boundingBox;
@@ -354,28 +355,29 @@ export class TesseractNode implements INodeType {
 				const timeout = this.getNodeParameter('options.timeout', itemIndex, 0) as number;
 				switch (operation) {
 					case "ocr":
-						newItem = await performOCR.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, boundingBox, timeout);
+						newItems = await performOCR.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, boundingBox, timeout]);
 						break;
 					case "boxes":
 						const granularity = this.getNodeParameter('granularity', itemIndex, 'words') as "paragraphs" | "lines" | "words" | "symbols";
-						newItem = await extractBoxes.bind(this)(worker, items[itemIndex], itemIndex, imageFieldName, granularity, boundingBox, timeout);
+						newItems = await extractBoxes.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, granularity, boundingBox, timeout]);
 						break;
 				}
-				items[itemIndex] = newItem;
-				if(newItem.json?.timeout === true){
-					throw new NodeOperationError(this.getNode(), newItem.json, {
+				outputItems.push(...newItems);
+				let failedItem;
+				if ((failedItem = newItems.find(item => item.json?.timeout === true)) !== undefined) {
+					throw new NodeOperationError(this.getNode(), failedItem.json, {
 						itemIndex,
 						message: "Timeout while OCRing item"
 					})
-
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
-					items[itemIndex] = {
+					outputItems.push({
 						json: items[itemIndex].json,
 						binary: this.getInputData()[itemIndex]?.binary,
 						error,
-						pairedItem: itemIndex};
+						pairedItem: itemIndex
+					});
 				} else {
 					if (error.context) {
 						error.context.itemIndex = itemIndex;
@@ -388,7 +390,7 @@ export class TesseractNode implements INodeType {
 			}
 		}
 
-		return [items];
+		return [outputItems];
 	}
 }
 
