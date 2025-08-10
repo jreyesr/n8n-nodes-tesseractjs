@@ -51,6 +51,7 @@
     "n8n-workflow": "*"
   },
   "dependencies": {
+    "jimp": "^1.6.0",
     "pdfjs-dist": "^5.4.54",
     "tesseract.js": "^6.0.0"
   }

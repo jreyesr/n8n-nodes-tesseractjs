@@ -1,6 +1,7 @@
 import {IExecuteFunctions, INodeExecutionData, NodeOperationError} from "n8n-workflow";
 import type {Worker, Block} from "tesseract.js";
 import {getDocument, ImageKind, OPS} from "pdfjs-dist/legacy/build/pdf.mjs";
+import {Jimp} from 'jimp'
 import {setTimeout} from "timers";
 
 type PdfJsImage = {
@@ -29,67 +30,31 @@ async function withTimeout<T>(promise: Promise<T>, timeout: number, cleanupFunc?
 
 type ImageWithName = { data: Buffer, name: string, mimetype: string }
 
-function pdfImageToBmp(image: PdfJsImage): Buffer {
-	function toLittleEndian(n: number): Uint8Array {
-		return Uint8Array.from([n & 255, (n >> 8 & 255), (n >> 16 & 255), (n >> 24 & 255)])
-	}
-
-	function toLittleEndianHalf(n: number): Uint8Array {
-		return toLittleEndian(n).slice(0, 2)
-	}
-
-	// each row must be padded to 4 bytes, so we may need to add something
-	const rowPadding = (4 - image.width * 3 % 4) % 4 // each pixel will always use 3 bytes, see below
-	const bmpRowLength = image.width * 3 + rowPadding
-	const bmpFinalSize = 54 + bmpRowLength * image.height
-
-	// critical reference: https://en.wikipedia.org/wiki/BMP_file_format#Example_1
-	const pieces: Uint8Array[] = []
-
-	// BMP header, 14 bytes
-	pieces.push(Buffer.from("BM"))
-	pieces.push(toLittleEndian(bmpFinalSize))
-	pieces.push(toLittleEndian(0)) // 4 zero bytes, "application specific"
-	pieces.push(toLittleEndian(54)) // offset where pixel data starts
-	// DIB header, 40 bytes
-	pieces.push(toLittleEndian(40)) // size of this header
-	pieces.push(toLittleEndian(image.width))
-	pieces.push(toLittleEndian(image.height))
-	pieces.push(toLittleEndianHalf(1)) // 1 color plane
-	pieces.push(toLittleEndianHalf(24)) // 24 bpp
-	pieces.push(toLittleEndian(0)) // 0 = no pixel array compression
-	pieces.push(toLittleEndian(bmpRowLength * image.height))
-	pieces.push(toLittleEndian(2835)) // dpi, horizontal, 72 DPI
-	pieces.push(toLittleEndian(2835)) // dpi, vertical, 72 DPI
-	pieces.push(toLittleEndian(0)) // num colors in palette
-	pieces.push(toLittleEndian(0)) // 0 = all colors are important
-
-	// fill pixel data
+async function pdfImageToJpeg(this: IExecuteFunctions, image: PdfJsImage): Promise<Buffer> {
 	const pixelSize = {
 		[ImageKind.GRAYSCALE_1BPP]: 1,
 		[ImageKind.RGB_24BPP]: 3,
 		[ImageKind.RGBA_32BPP]: 4
 	}[image.kind]
-	for (let row = image.height; row >= 0; row--) { // NOTE: BMP is stored bottom to top (why, MS?)
-		let bytesSaved = 0
-		for (let col = 0; col < image.width; col++) {
-			const startPositionInSource = row * image.width * pixelSize + col * pixelSize
-			if (pixelSize === 1) {
-				// copy the same gray value three times
-				pieces.push(Uint8Array.from(Array(3).fill(image.data[startPositionInSource])))
-			} else {
-				// either RGB or RGBA, just copy the first three bytes (RGB), and wholly ignore A if it exists
-				// WARN: BMP stores in reverse order, BGR (why, MS? x2)
-				pieces.push(Uint8Array.from(image.data.slice(startPositionInSource, startPositionInSource + 3).reverse()))
-			}
-			bytesSaved += 3
+
+	const pixels_ = Array(image.width * image.height * 4); // preallocate RGBA
+	for (let i = 0; i < image.width * image.height; i++) {
+		if (pixelSize === 1) {
+			const grayValue = image.data[i]
+			pixels_[4 * i] = pixels_[4 * i + 1] = pixels_[4 * i + 2] = grayValue
+		} else {
+			const [r, g, b] = image.data.slice(i * pixelSize, i * pixelSize + 3)
+			pixels_[4 * i] = r
+			pixels_[4 * i + 1] = g
+			pixels_[4 * i + 2] = b
 		}
-
-		// NOTE: may be zero, shouldn't hurt anything in that case
-		pieces.push(Uint8Array.from(Array(rowPadding).fill(0)))
+		pixels_[4 * i + 3] = 0xff // alpha channel is always 0xff
 	}
-
-	return Buffer.concat(pieces)
+	const jimp: InstanceType<(typeof Jimp)> = Jimp.fromBitmap({
+		data: Buffer.from(pixels_),
+		width: image.width, height: image.height
+	})
+	return await jimp.getBuffer("image/jpeg")
 }
 
 async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, imageFieldName: string): Promise<ImageWithName[]> {
@@ -110,11 +75,13 @@ async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, i
 				if (operators.fnArray[i] == OPS.paintImageXObject) { // NOTE: You may find references to paintJpegXObject, it's now deprecated
 					const imgIndex = operators.argsArray[i][0];
 					imageBufferPromises.push(new Promise<ImageWithName>(resolve => {
-						page.objs.get(imgIndex, (imgRef: PdfJsImage) => resolve({
-							data: pdfImageToBmp(imgRef),
-							name: imgIndex.toString() + ".bmp",
-							mimetype: "image/bmp",
-						}))
+						page.objs.get(imgIndex, async (imgRef: PdfJsImage) => {
+							resolve({
+								data: await pdfImageToJpeg.apply(this, [imgRef]),
+								name: imgIndex.toString() + ".jpg",
+								mimetype: "image/jpeg",
+							})
+						})
 					}))
 				}
 			}
