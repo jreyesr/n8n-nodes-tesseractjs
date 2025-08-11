@@ -5,7 +5,11 @@ workflows.
 
 [Tesseract](https://github.com/tesseract-ocr/tesseract?tab=readme-ov-file#about) is an open source OCR (Optical
 Character Recognition) engine that can recognize text (machine/typed/printed text, not handwritten) in images (e.g. PNG
-or JPEG).
+or JPEG) or images embedded in PDF files.
+
+To read text from PDFs directly (not from images), you may want
+[the **Extract from PDF** operation of the built-in **Extract from file** node
+](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.extractfromfile/#operations)
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
 
@@ -25,6 +29,9 @@ You can quickly get started by importing [the sample playbook](./sample_workflow
 
 ## Operations
 
+Note: both operations will output a new binary field, called `ocr`, which contains the image that was actually OCR'd.
+For input images, this will be the same image. For input PDFs, this will be each image in the PDF.
+
 ### Extract text
 
 This operation reads the text of the entire image. It outputs a JSON item containing the entire recognized text, and a "
@@ -36,6 +43,9 @@ confidence value" indicating how likely the generated text is to match the sourc
 	"confidence": 94
 }
 ```
+
+If passed a PDF instead of an image, the node may output several items, one for each image in the PDF. Each item will
+have the format described above.
 
 ### Extract boxes
 
@@ -86,6 +96,9 @@ Per-line statistics:
 
 ![an image of the same text with Tesseract per-line detections overlaid as one red box covering each line](imgs/lines.png)
 
+If passed a PDF instead of an image, the node may output several items, one for each image in the PDF. Each item will
+have the format described above.
+
 ## Compatibility
 
 This node has been tested on n8n v1.68.0, but should also work on older versions. If you encounter an issue with an
@@ -100,7 +113,8 @@ provided:
 
 ![a screenshot of the node UI showing an input item with Binary data](imgs/iifn.png)
 
-The Binary file with that name will be read and processed.
+The Binary file with that name will be read and processed. It should be an image or a PDF document. If a PDF, all images
+inside the PDF will be extracted and processed separately.
 
 ### Detect on Entire Image?
 
@@ -178,8 +192,13 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 
 ### v1.3.0
 
-* Add a Timeout option to control the max processing time (
-	closes [#3](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/3))
+* Add a Timeout option to control the max processing time
+	(closes [#3](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/3))
+
+### v1.4.0
+
+* Add the ability to extract all images from a PDF and process them, in addition to single images
+	(closes [#4](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/4))
 
 ## Developer info
 
