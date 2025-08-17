@@ -200,6 +200,11 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 * Add the ability to extract all images from a PDF and process them, in addition to single images
 	(closes [#4](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/4))
 
+### v1.4.1
+
+* Adds proper handling for images that are repeated across pages (e.g. logo on header, page background, 
+  image that was copy-pasted on several pages), which are stored separately from page-specific images
+
 ## Developer info
 
 ```bash

@@ -54,10 +54,13 @@ async function pdfImageToJpeg(this: IExecuteFunctions, image: PdfJsImage): Promi
 		data: Buffer.from(pixels_),
 		width: image.width, height: image.height
 	})
-	return await jimp.getBuffer("image/jpeg")
+	const jpeg = await jimp.getBuffer("image/jpeg")
+	this.logger.debug("encoded to JPG", {size: jpeg.length})
+	return jpeg
 }
 
 async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, imageFieldName: string): Promise<ImageWithName[]> {
+	this.logger.debug("Getting images", {itemIndex})
 	const binaryInfo = this.getInputData()[itemIndex].binary![imageFieldName]
 	const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, imageFieldName)
 	if (binaryInfo.mimeType.startsWith("image/")) {
@@ -68,14 +71,21 @@ async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, i
 
 		// NOTE: PDF page numbers start at 1!
 		for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber++) {
+			this.logger.debug("Getting images in page", {pageNumber})
 			const page = await pdfDoc.getPage(pageNumber)
 			const operators = await page.getOperatorList()
 			// operators has two parallel arrays, fnArray and argsArray, equivalent to calling fnArray[i](...argsArray[i]) for each i
 			for (let i = 0; i < operators.fnArray.length; i++) {
 				if (operators.fnArray[i] == OPS.paintImageXObject) { // NOTE: You may find references to paintJpegXObject, it's now deprecated
-					const imgIndex = operators.argsArray[i][0];
+					const imgIndex: string = operators.argsArray[i][0];
+					this.logger.debug("Found image in page", {pageNumber, imgIndex})
 					imageBufferPromises.push(new Promise<ImageWithName>(resolve => {
-						page.objs.get(imgIndex, async (imgRef: PdfJsImage) => {
+						// NOTE: images whose IDs start with "g_" indicate that they're cached at the document level
+						// This happens for images that appear on several pages, at which point PDF.js moves them from the page object store to the doc object store
+						// Those images need to be accessed from `page.commonObjs` rather than `page.objs`, if you try to access `page.objs` the callback is simply
+						// never called and this whole function hangs
+						// See https://github.com/mozilla/pdf.js/issues/13742#issuecomment-881297161
+						(imgIndex.startsWith("g_") ? page.commonObjs : page.objs).get(imgIndex, async (imgRef: PdfJsImage) => {
 							resolve({
 								data: await pdfImageToJpeg.apply(this, [imgRef]),
 								name: imgIndex.toString() + ".jpg",
@@ -87,7 +97,10 @@ async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, i
 			}
 		}
 
-		return Promise.all(imageBufferPromises)
+		return Promise.all(imageBufferPromises).catch(e => {
+			this.logger.error("ERR", {e});
+			return [];
+		})
 	} else {
 		throw new NodeOperationError(this.getNode(), {}, {
 			itemIndex,
@@ -99,7 +112,10 @@ async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, i
 
 export async function performOCR(this: IExecuteFunctions, worker: Worker, item: INodeExecutionData, itemIndex: number, imageFieldName: string, bbox?: BoundingBox, timeout: number = 0): Promise<INodeExecutionData[]> {
 	const images = await getImagesFromBinary.apply(this, [itemIndex, imageFieldName])
+	this.logger.debug("images fetched", {num: images.length})
 	const processImage = async ({data: image, name, mimetype}: ImageWithName) => {
+		this.logger.debug("Processing image", {name, size: image.length})
+
 		const newItem: INodeExecutionData = {
 			json: {},
 			binary: {...item.binary}, // clone because otherwise the multiple items of a PDF will step on each other
@@ -112,6 +128,7 @@ export async function performOCR(this: IExecuteFunctions, worker: Worker, item: 
 			async () => {
 				await worker.terminate()
 			})
+		this.logger.debug("Image processed", {name})
 
 		newItem.json =
 			d === "timeout" ?
