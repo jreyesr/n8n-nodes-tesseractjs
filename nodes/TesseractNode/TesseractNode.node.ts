@@ -309,6 +309,20 @@ export class TesseractNode implements INodeType {
 						description: 'If set, processing will be canceled if an image takes more than this number of milliseconds',
 						default: null,
 					},
+					{
+						displayName: 'Resize Factor',
+						name: 'resizeFactor',
+						type: 'number',
+						description: 'Tesseract recommends that lowercase letters are around 20 pixels high. See <a href="https://github.com/tesseract-ocr/tessdoc/blob/main/tess3/FAQ-Old.md#is-there-a-minimum--maximum-text-size-it-wont-read-screen-text">this FAQ</a>.',
+						default: 100,
+					},
+					{
+						displayName: 'Include Binary Output',
+						name: 'outputBinary',
+						type: 'boolean',
+						description: 'Whether to include the processed image in the output items as Binary data. Unset this if processing large or many images.',
+						default: true,
+					},
 				]
 			}
 		],
@@ -347,9 +361,9 @@ export class TesseractNode implements INodeType {
 				let newItems: INodeExecutionData[];
 				const imageFieldName = this.getNodeParameter('inputDataFieldName', itemIndex, 'data') as string;
 				const entireImage = this.getNodeParameter('detectEntireImage', itemIndex, true) as boolean;
-				let boundingBox;
+				let bbox;
 				if (!entireImage) {
-					boundingBox = {
+					bbox = {
 						top: this.getNodeParameter('top', itemIndex, 0) as number,
 						left: this.getNodeParameter('left', itemIndex, 0) as number,
 						width: this.getNodeParameter('width', itemIndex, 100) as number,
@@ -357,15 +371,30 @@ export class TesseractNode implements INodeType {
 					}
 				}
 				const timeout = this.getNodeParameter('options.timeout', itemIndex, 0) as number;
+				const resizeFactor = this.getNodeParameter('options.resizeFactor', itemIndex, 100) as number
 				switch (operation) {
 					case "ocr":
-						newItems = await performOCR.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, boundingBox, timeout]);
+						newItems = await performOCR.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, {
+							bbox,
+							timeout,
+							resizeFactor
+						}]);
 						break;
 					case "boxes":
 						const granularity = this.getNodeParameter('granularity', itemIndex, 'words') as "paragraphs" | "lines" | "words" | "symbols";
-						newItems = await extractBoxes.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, granularity, boundingBox, timeout]);
+						newItems = await extractBoxes.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, granularity, {
+							bbox,
+							timeout,
+							resizeFactor
+						}]);
 						break;
 				}
+
+				const outputBinary = this.getNodeParameter("options.outputBinary", itemIndex, true) as boolean
+				if (!outputBinary) { // clear the Binary data for all output items
+					newItems.forEach(i => i.binary = {})
+				}
+
 				outputItems.push(...newItems);
 				let failedItem;
 				if ((failedItem = newItems.find(item => item.json?.timeout === true)) !== undefined) {

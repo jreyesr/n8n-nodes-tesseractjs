@@ -16,6 +16,12 @@ type BoundingBox = {
 	width: number, height: number,
 }
 
+export type OCROptions = {
+	bbox?: BoundingBox
+	timeout: number
+	resizeFactor?: number
+}
+
 async function withTimeout<T>(promise: Promise<T>, timeout: number, cleanupFunc?: () => Promise<void>): Promise<T | "timeout"> {
 	if (!timeout) return promise;
 
@@ -30,14 +36,14 @@ async function withTimeout<T>(promise: Promise<T>, timeout: number, cleanupFunc?
 
 type ImageWithName = { data: Buffer, name: string, mimetype: string }
 
-async function pdfImageToJpeg(this: IExecuteFunctions, image: PdfJsImage): Promise<Buffer> {
+async function pdfImageToJpeg(this: IExecuteFunctions, image: PdfJsImage, resizeFactor: number = 100): Promise<Buffer> {
 	const pixelSize = {
 		[ImageKind.GRAYSCALE_1BPP]: 1,
 		[ImageKind.RGB_24BPP]: 3,
 		[ImageKind.RGBA_32BPP]: 4
 	}[image.kind]
 
-	const pixels_ = Array(image.width * image.height * 4); // preallocate RGBA
+	const pixels_ = new Uint8ClampedArray(image.width * image.height * 4); // preallocate RGBA
 	for (let i = 0; i < image.width * image.height; i++) {
 		if (pixelSize === 1) {
 			const grayValue = image.data[i]
@@ -54,17 +60,29 @@ async function pdfImageToJpeg(this: IExecuteFunctions, image: PdfJsImage): Promi
 		data: Buffer.from(pixels_),
 		width: image.width, height: image.height
 	})
-	const jpeg = await jimp.getBuffer("image/jpeg")
+	if (resizeFactor !== 100) {
+		jimp.scale(resizeFactor / 100)
+	}
+	// Per https://www.lenspiration.com/2020/07/what-quality-setting-should-i-use-for-jpg-photos/ and https://regex.info/blog/lightroom-goodies/jpeg-quality,
+	// settings around 60 to 80 are essentially indistinguishable from absolute top quality JPEG (even though
+	// those experiments are in Lightroom, which uses a different scale than *everyone else*), especially
+	// for non-natural-world scenes (e.g. scans, mostly large spans of uniform color). It appears that
+	const jpeg = await jimp.getBuffer("image/jpeg", {quality: 30})
 	this.logger.debug("encoded to JPG", {size: jpeg.length})
 	return jpeg
 }
 
-async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, imageFieldName: string): Promise<ImageWithName[]> {
+async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, imageFieldName: string, resizeFactor: number = 100): Promise<ImageWithName[]> {
 	this.logger.debug("Getting images", {itemIndex})
 	const binaryInfo = this.getInputData()[itemIndex].binary![imageFieldName]
 	const buffer = await this.helpers.getBinaryDataBuffer(itemIndex, imageFieldName)
 	if (binaryInfo.mimeType.startsWith("image/")) {
-		return [{data: buffer, mimetype: binaryInfo.mimeType, name: binaryInfo.fileName!}]
+		let resized = buffer, mimeType = binaryInfo.mimeType;
+		if (resizeFactor !== 100) {
+			resized = await (await Jimp.fromBuffer(buffer)).scale(resizeFactor / 100).getBuffer("image/jpeg")
+			mimeType = "image/jpeg"
+		}
+		return [{data: resized, mimetype: mimeType, name: binaryInfo.fileName!}]
 	} else if (binaryInfo.mimeType === "application/pdf") {
 		const pdfDoc = await getDocument(Uint8Array.from(buffer)).promise
 		const imageBufferPromises: Promise<ImageWithName>[] = []
@@ -87,7 +105,7 @@ async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, i
 						// See https://github.com/mozilla/pdf.js/issues/13742#issuecomment-881297161
 						(imgIndex.startsWith("g_") ? page.commonObjs : page.objs).get(imgIndex, async (imgRef: PdfJsImage) => {
 							resolve({
-								data: await pdfImageToJpeg.apply(this, [imgRef]),
+								data: await pdfImageToJpeg.apply(this, [imgRef, resizeFactor]),
 								name: imgIndex.toString() + ".jpg",
 								mimetype: "image/jpeg",
 							})
@@ -110,8 +128,8 @@ async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, i
 }
 
 
-export async function performOCR(this: IExecuteFunctions, worker: Worker, item: INodeExecutionData, itemIndex: number, imageFieldName: string, bbox?: BoundingBox, timeout: number = 0): Promise<INodeExecutionData[]> {
-	const images = await getImagesFromBinary.apply(this, [itemIndex, imageFieldName])
+export async function performOCR(this: IExecuteFunctions, worker: Worker, item: INodeExecutionData, itemIndex: number, imageFieldName: string, options: OCROptions): Promise<INodeExecutionData[]> {
+	const images = await getImagesFromBinary.apply(this, [itemIndex, imageFieldName, options.resizeFactor ?? 100])
 	this.logger.debug("images fetched", {num: images.length})
 	const processImage = async ({data: image, name, mimetype}: ImageWithName) => {
 		this.logger.debug("Processing image", {name, size: image.length})
@@ -123,8 +141,8 @@ export async function performOCR(this: IExecuteFunctions, worker: Worker, item: 
 		};
 
 		const d = await withTimeout(
-			worker.recognize(image, {rectangle: bbox}, {text: true}),
-			timeout,
+			worker.recognize(image, {rectangle: options.bbox}, {text: true}),
+			options.timeout ?? 0,
 			async () => {
 				await worker.terminate()
 			})
@@ -141,8 +159,8 @@ export async function performOCR(this: IExecuteFunctions, worker: Worker, item: 
 	return Promise.all(images.map(processImage))
 }
 
-export async function extractBoxes(this: IExecuteFunctions, worker: Worker, item: INodeExecutionData, itemIndex: number, imageFieldName: string, granularity: "paragraphs" | "lines" | "words" | "symbols", bbox?: BoundingBox, timeout: number = 0): Promise<INodeExecutionData[]> {
-	const images = await getImagesFromBinary.apply(this, [itemIndex, imageFieldName])
+export async function extractBoxes(this: IExecuteFunctions, worker: Worker, item: INodeExecutionData, itemIndex: number, imageFieldName: string, granularity: "paragraphs" | "lines" | "words" | "symbols", options: OCROptions): Promise<INodeExecutionData[]> {
+	const images = await getImagesFromBinary.apply(this, [itemIndex, imageFieldName, options.resizeFactor ?? 100])
 	const processImage = async ({data: image, name, mimetype}: ImageWithName) => {
 		const newItem: INodeExecutionData = {
 			json: {},
@@ -151,8 +169,8 @@ export async function extractBoxes(this: IExecuteFunctions, worker: Worker, item
 		};
 
 		const d = await withTimeout(
-			worker.recognize(image, {rectangle: bbox}, {blocks: true}),
-			timeout,
+			worker.recognize(image, {rectangle: options.bbox}, {blocks: true}),
+			options.timeout ?? 0,
 			async () => {
 				await worker.terminate()
 			})
