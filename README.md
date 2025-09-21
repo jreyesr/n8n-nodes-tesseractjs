@@ -205,7 +205,7 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 * Add proper handling for images that are repeated across pages (e.g. logo on header, page background, 
   image that was copy-pasted on several pages), which are stored separately from page-specific images
 
-### v1.4.1
+### v1.4.2
 
 * Add options to resize the images before OCR and to not return binary data (solves Invalid string length error on large images)
 

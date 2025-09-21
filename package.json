@@ -52,7 +52,7 @@
   },
   "dependencies": {
     "jimp": "^1.6.0",
-    "pdfjs-dist": "^5.4.54",
+    "pdfjs-dist": "5.3.31",
     "tesseract.js": "^6.0.0"
   }
 }
