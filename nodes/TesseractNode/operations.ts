@@ -20,6 +20,7 @@ export type OCROptions = {
 	bbox?: BoundingBox
 	timeout: number
 	resizeFactor?: number
+	minConfidence: number
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeout: number, cleanupFunc?: () => Promise<void>): Promise<T | "timeout"> {
@@ -156,7 +157,10 @@ export async function performOCR(this: IExecuteFunctions, worker: Worker, item: 
 		return newItem;
 	}
 
-	return Promise.all(images.map(processImage))
+	const imagesData = await Promise.all(images.map(processImage))
+	// if item.json does not have .confidence, it'll fallback to options.minConfidence, which is always >= itself,
+	// therefore items without .confidence (i.e. timeouts) will always be returned
+	return imagesData.filter(imageData => (imageData.json.confidence as number ?? options.minConfidence) >= options.minConfidence)
 }
 
 export async function extractBoxes(this: IExecuteFunctions, worker: Worker, item: INodeExecutionData, itemIndex: number, imageFieldName: string, granularity: "paragraphs" | "lines" | "words" | "symbols", options: OCROptions): Promise<INodeExecutionData[]> {
@@ -191,12 +195,16 @@ export async function extractBoxes(this: IExecuteFunctions, worker: Worker, item
 
 			newItem.json = {
 				// @ts-ignore
-				blocks: d.data[granularity].map((b: Block) => ({
-					text: b.text,
-					confidence: b.confidence,
-					bbox: b.bbox,
-					language: "language" in b ? b.language : undefined
-				}))
+				blocks: (d.data[granularity]
+					.map((b: Block) => ({
+						text: b.text,
+						confidence: b.confidence,
+						bbox: b.bbox,
+						language: "language" in b ? b.language : undefined
+					}))
+					.filter((blockInfo: {
+						confidence?: number
+					}) => (blockInfo.confidence ?? options.minConfidence) >= options.minConfidence))
 			};
 			newItem.binary!["ocr"] = await this.helpers.prepareBinaryData(image, name, mimetype)
 		}

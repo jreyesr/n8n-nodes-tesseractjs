@@ -138,6 +138,22 @@ they lie halfway across the bounding box's borders:
 This option can be used if Tesseract can't autodetect the image's resolution, such as a PNG that doesn't carry that
 information.
 
+### Minimum Confidence
+
+Each recognized block of text (the entire image in the Extract Text operation, or a block such as a paragraph, word or
+letter in the Extract Boxes operation) has a `confidence` value
+that [correlates with the likelihood of the recognized text being correct](https://groups.google.com/g/tesseract-ocr/c/SN8L0IA_0D4/m/sFG8cvitAQAJ).
+Lower confidences are more likely to contain wrong characters or be junk (such as the OCR engine "recognizing" text in
+an image that has none).
+
+> In my experience values below 95 are usually unusable. Above 99 is usually correct. I would set the threshold somewhere between 97.5 and 98.5 depending on your requirements.
+> 
+> The lowest value I have ever seen is 75 but anything below 90 is extremely rare, even below 95 is rare.
+
+Set the Minimum Confidence option to filter low-confidence results. Ony results that have a confidence _greater than or
+equal to_ this value will be returned. By default, or if not provided, it'll be 0, meaning that no filtering will be
+performed (because confidence is an integer between 0 and 100, so all confidences are greater than or equal to zero).
+
 ### Timeout
 
 If you'd like to abort OCR when a certain image takes too long to process, set the Timeout option (in milliseconds).
@@ -202,12 +218,14 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 
 ### v1.4.1
 
-* Add proper handling for images that are repeated across pages (e.g. logo on header, page background, 
-  image that was copy-pasted on several pages), which are stored separately from page-specific images
+* Add proper handling for images that are repeated across pages (e.g. logo on header, page background,
+	image that was copy-pasted on several pages), which are stored separately from page-specific images
 
 ### v1.4.2
 
 * Add options to resize the images before OCR and to not return binary data (solves Invalid string length error on large images)
+* Add options to resize the images before OCR and to not return binary data (solves Invalid string length error on large
+	images)
 
 ## Developer info
 

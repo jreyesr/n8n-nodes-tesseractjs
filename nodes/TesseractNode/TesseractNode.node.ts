@@ -6,7 +6,7 @@ import {
 	NodeConnectionType,
 	NodeOperationError
 } from 'n8n-workflow';
-import {extractBoxes, performOCR} from "./operations";
+import {extractBoxes, OCROptions, performOCR} from "./operations";
 import {createWorker, PSM} from "tesseract.js";
 
 export class TesseractNode implements INodeType {
@@ -323,6 +323,13 @@ export class TesseractNode implements INodeType {
 						description: 'Whether to include the processed image in the output items as Binary data. Unset this if processing large or many images.',
 						default: true,
 					},
+					{
+						displayName: 'Minimum Confidence',
+						name: 'minConfidence',
+						type: 'number',
+						default: 0,
+						description: 'Any results whose confidence is lower than this value will be discarded (confidence must be ≥ this value)',
+					},
 				]
 			}
 		],
@@ -372,21 +379,20 @@ export class TesseractNode implements INodeType {
 				}
 				const timeout = this.getNodeParameter('options.timeout', itemIndex, 0) as number;
 				const resizeFactor = this.getNodeParameter('options.resizeFactor', itemIndex, 100) as number
+				const minConfidence = this.getNodeParameter("options.minConfidence", itemIndex, 0) as number
+				const options: OCROptions = {
+					bbox,
+					timeout,
+					resizeFactor,
+					minConfidence
+				}
 				switch (operation) {
 					case "ocr":
-						newItems = await performOCR.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, {
-							bbox,
-							timeout,
-							resizeFactor
-						}]);
+						newItems = await performOCR.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, options]);
 						break;
 					case "boxes":
 						const granularity = this.getNodeParameter('granularity', itemIndex, 'words') as "paragraphs" | "lines" | "words" | "symbols";
-						newItems = await extractBoxes.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, granularity, {
-							bbox,
-							timeout,
-							resizeFactor
-						}]);
+						newItems = await extractBoxes.apply(this, [worker, items[itemIndex], itemIndex, imageFieldName, granularity, options]);
 						break;
 				}
 
