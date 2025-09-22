@@ -223,9 +223,14 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 
 ### v1.4.2
 
-* Add options to resize the images before OCR and to not return binary data (solves Invalid string length error on large images)
 * Add options to resize the images before OCR and to not return binary data (solves Invalid string length error on large
 	images)
+
+### v1.5.0
+
+* Add option to filter low confidence results (closes [#4](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/4))
+* Downgrade `pdfjs-dist` to v5.3.31 to match N8N's own copy, because otherwise this node conflicted with the Extract
+	From File node (closes [#5](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/5))
 
 ## Developer info
 
