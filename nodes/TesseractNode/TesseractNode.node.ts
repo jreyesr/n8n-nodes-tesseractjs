@@ -313,7 +313,7 @@ export class TesseractNode implements INodeType {
 						displayName: 'Resize Factor',
 						name: 'resizeFactor',
 						type: 'number',
-						description: 'Tesseract recommends that lowercase letters are around 20 pixels high. See <a href="https://github.com/tesseract-ocr/tessdoc/blob/main/tess3/FAQ-Old.md#is-there-a-minimum--maximum-text-size-it-wont-read-screen-text">this FAQ</a>.',
+						description: 'Tesseract recommends that lowercase letters are around 20 pixels high. See <a href="https://github.com/tesseract-ocr/tessdoc/blob/main/tess3/FAQ-Old.md#is-there-a-minimum--maximum-text-size-it-wont-read-screen-text">this FAQ</a>. 100 keeps image as-is, lower numbers make the image smaller, higher numbers enlarge the image.',
 						default: 100,
 					},
 					{
