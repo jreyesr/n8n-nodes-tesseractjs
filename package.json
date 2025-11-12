@@ -39,6 +39,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.2",
+    "@types/pako": "^2.0.4",
     "@typescript-eslint/parser": "^7.15.0",
     "eslint": "^8.56.0",
     "eslint-plugin-n8n-nodes-base": "^1.16.1",
@@ -52,7 +53,8 @@
   },
   "dependencies": {
     "jimp": "^1.6.0",
-    "pdfjs-dist": "5.3.31",
+    "pako": "^2.1.0",
+    "pdf-lib": "^1.17.1",
     "tesseract.js": "^6.0.0"
   }
 }
