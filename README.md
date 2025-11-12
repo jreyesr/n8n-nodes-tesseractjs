@@ -146,8 +146,9 @@ that [correlates with the likelihood of the recognized text being correct](https
 Lower confidences are more likely to contain wrong characters or be junk (such as the OCR engine "recognizing" text in
 an image that has none).
 
-> In my experience values below 95 are usually unusable. Above 99 is usually correct. I would set the threshold somewhere between 97.5 and 98.5 depending on your requirements.
-> 
+> In my experience values below 95 are usually unusable. Above 99 is usually correct. I would set the threshold
+> somewhere between 97.5 and 98.5 depending on your requirements.
+>
 > The lowest value I have ever seen is 75 but anything below 90 is extremely rare, even below 95 is rare.
 
 Set the Minimum Confidence option to filter low-confidence results. Ony results that have a confidence _greater than or
@@ -231,6 +232,15 @@ Initial version, contains the **Extract text** and **Extract boxes** operations.
 * Add option to filter low confidence results (closes [#4](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/4))
 * Downgrade `pdfjs-dist` to v5.3.31 to match N8N's own copy, because otherwise this node conflicted with the Extract
 	From File node (closes [#5](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/5))
+
+### v1.5.1
+
+No user-facing changes, should work exactly like v1.5.0.
+Please [raise an issue](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues) if anything breaks when upgrading from
+v1.5.0 to v1.5.1!
+
+* Changes the PDF library (added in v1.4.0) from `pdfjs-dist` to `pdf-lib` due to unexplained crashes (e.g. in Synology
+	devices and some virtualized environments) ([#7](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/7))
 
 ## Developer info
 
