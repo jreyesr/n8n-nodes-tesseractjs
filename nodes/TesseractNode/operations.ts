@@ -1,6 +1,6 @@
 import {IExecuteFunctions, INodeExecutionData, NodeOperationError} from "n8n-workflow";
 import type {Block, Worker} from "tesseract.js";
-import {PDFArray, PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFRef} from 'pdf-lib'
+import {PDFArray, PDFDocument, PDFName, PDFNumber, PDFObject, PDFRawStream, PDFRef} from 'pdf-lib'
 import {Jimp, JimpInstance} from 'jimp'
 import {setTimeout} from "timers";
 import {inflate} from "pako";
@@ -32,12 +32,20 @@ async function withTimeout<T>(promise: Promise<T>, timeout: number, cleanupFunc?
 
 type ImageWithName = { data: Buffer, name: string, mimetype: string, ref?: PDFRef, maskRef?: PDFRef }
 
+function possiblyUnwrapPdfRef<T>(doc: PDFDocument, x?: PDFObject): T {
+	if (x instanceof PDFRef) {
+		return doc.context.lookup(x)! as T
+	} else {
+		return x as T
+	}
+}
+
 async function processPDFImage(this: IExecuteFunctions, doc: PDFDocument, ref: PDFRef, obj: PDFRawStream): Promise<ImageWithName | undefined> {
 	const {dict} = obj;
 	const smaskRef = dict.get(PDFName.of("SMask")) as PDFRef | undefined;
 	const colorSpace = dict.get(PDFName.of("ColorSpace")) as PDFName | PDFRef;
-	const width = (dict.get(PDFName.of("Width")) as PDFNumber).asNumber();
-	const height = (dict.get(PDFName.of("Height")) as PDFNumber).asNumber();
+	const width = possiblyUnwrapPdfRef<PDFNumber>(doc, dict.get(PDFName.of("Width"))).asNumber();
+	const height = possiblyUnwrapPdfRef<PDFNumber>(doc, dict.get(PDFName.of("Height"))).asNumber();
 	const name = dict.get(PDFName.of("Name")) as PDFName | undefined;
 	const bitsPerComponent = (dict.get(PDFName.of("BitsPerComponent")) as PDFNumber).asNumber();
 	const filter = dict.get(PDFName.of("Filter"));
@@ -249,7 +257,7 @@ export async function performOCR(this: IExecuteFunctions, worker: Worker, item: 
 		};
 
 		const d = await withTimeout(
-			worker.recognize(image, {rectangle: options.bbox}, {text: true}),
+			worker.recognize(image, {rectangle: options.bbox, rotateAuto: true}, {text: true, osd: true, debug: true}),
 			options.timeout ?? 0,
 			async () => {
 				await worker.terminate()
@@ -280,7 +288,7 @@ export async function extractBoxes(this: IExecuteFunctions, worker: Worker, item
 		};
 
 		const d = await withTimeout(
-			worker.recognize(image, {rectangle: options.bbox}, {blocks: true}),
+			worker.recognize(image, {rectangle: options.bbox}, {blocks: true, osd: true}),
 			options.timeout ?? 0,
 			async () => {
 				await worker.terminate()

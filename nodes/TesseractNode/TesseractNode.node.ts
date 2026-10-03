@@ -2,12 +2,13 @@ import {
 	type IExecuteFunctions,
 	type INodeExecutionData,
 	INodeType,
-	INodeTypeDescription, JsonObject,
+	INodeTypeDescription,
+	JsonObject,
 	NodeConnectionType,
 	NodeOperationError
 } from 'n8n-workflow';
 import {extractBoxes, OCROptions, performOCR} from "./operations";
-import {createWorker, PSM} from "tesseract.js";
+import {createWorker, OEM, PSM} from "tesseract.js";
 
 export class TesseractNode implements INodeType {
 	description: INodeTypeDescription = {
@@ -165,6 +166,16 @@ export class TesseractNode implements INodeType {
 						description: 'For a description of the modes, see <a href="https://pyimagesearch.com/2021/11/15/tesseract-page-segmentation-modes-psms-explained-how-to-improve-your-ocr-accuracy/">this link</a>',
 						options: [
 							{
+								name: 'Automatic',
+								value: 'AUTO',
+								description: 'Fully automatic page segmentation, but no OSD (assumes the image is upright)',
+							},
+							{
+								name: 'Automatic + OSD',
+								value: 'AUTO_OSD',
+								description: 'Automatic page segmentation with Orientation and script detection (may rotate the image)',
+							},
+							{
 								name: 'Single Block',
 								value: 'SINGLE_BLOCK',
 								description: 'Assume a single uniform block of text, such as a book page',
@@ -188,6 +199,11 @@ export class TesseractNode implements INodeType {
 								name: 'Sparse Text',
 								value: 'SPARSE_TEXT',
 								description: 'Find as much text as possible in no particular order. Use when text is scattered across the image.'
+							},
+							{
+								name: 'Sparse Text + OSD',
+								value: 'SPARSE_TEXT_OSD',
+								description: 'Like Sparse Text, but also does orientation and script detection'
 							},
 						]
 					},
@@ -341,7 +357,7 @@ export class TesseractNode implements INodeType {
 		const operation = this.getNodeParameter('operation', 0, 'ocr') as 'ocr' | 'boxes';
 		const lang = this.getNodeParameter('options.language', 0, 'eng') as string;
 
-		const worker = await createWorker(lang);
+		const worker = await createWorker(lang+"+osd", OEM.TESSERACT_LSTM_COMBINED, {legacyLang: true, legacyCore: true});
 
 		const psm = this.getNodeParameter('options.psm', 0, 'SINGLE_BLOCK') as 'SINGLE_BLOCK' | 'SINGLE_COLUMN' | 'SINGLE_LINE' | 'SINGLE_WORD' | 'SPARSE_TEXT';
 		await worker.setParameters({tessedit_pageseg_mode: PSM[psm]})

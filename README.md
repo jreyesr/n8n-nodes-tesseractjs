@@ -242,6 +242,11 @@ v1.5.0 to v1.5.1!
 * Changes the PDF library (added in v1.4.0) from `pdfjs-dist` to `pdf-lib` due to unexplained crashes (e.g. in Synology
 	devices and some virtualized environments) ([#7](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/7))
 
+### v1.6.0
+
+* Closes [#9](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/9) ("dict.get(...).asNumber is not a function" due to image width or height being PDFRef to PDFNumber instead of straight PDFNumber)
+* Adds new PSM modes AUTO, AUTO_OSD and SPARSE_TEXT_OSD (see values 3, 1 and 12 respectively in <https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html#page-segmentation-method>)
+
 ## Developer info
 
 ```bash
