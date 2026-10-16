@@ -94,7 +94,7 @@ async function processPDFImage(this: IExecuteFunctions, doc: PDFDocument, ref: P
 							const rowOffset = y * numBytesInRow; // e.g. if image is 5-px wide then numBytesInRow=1, then rowOffset=0 for first row, rowOffset=1 for second row...
 							for (let x = 0; x < numBytesInRow; x++) { // x chooses each byte in the row
 								const byteOffset = rowOffset + x;
-								const validBits = Math.min(8, width - 8*x * 8) // always 8 except on the last byte of the row, where it may be smaller
+								const validBits = Math.min(8, width - 8*x) // always 8 except on the last byte of the row, where it may be smaller
 								for (let i = 0; i < validBits; i++) { // i is the bit index inside the byte, 0=MSB, 7=LSB
 									// e.g. for 3rd bit in 4th byte of 1st row, then rawPixels[3] & (1 << 2) = rawPixels[3] & 00000100
 									// then multiply by 255 so 0 => 0 and 1 => 255, which are the only two possible values
