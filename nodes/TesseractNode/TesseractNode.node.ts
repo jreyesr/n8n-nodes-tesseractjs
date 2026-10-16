@@ -384,7 +384,7 @@ export class TesseractNode implements INodeType {
 		if (this.getNodeParameter('options.charlists.charlists.enableBlacklist', 0, false)) {
 			const tessedit_char_blacklist = this.getNodeParameter('options.charlists.charlists.blacklist', 0, "") as string;
 			this.logger.debug('Setting blacklist', {value: tessedit_char_blacklist})
-			await worker.setParameters({tessedit_char_whitelist: tessedit_char_blacklist})
+			await worker.setParameters({tessedit_char_blacklist})
 		}
 		if (this.getNodeParameter('options.charlists.charlists.enableWhitelist', 0, false)) {
 			const tessedit_char_whitelist = this.getNodeParameter('options.charlists.charlists.whitelist', 0, "") as string;
