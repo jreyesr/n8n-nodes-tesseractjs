@@ -1,10 +1,8 @@
 import {IExecuteFunctions, INodeExecutionData, NodeOperationError} from "n8n-workflow";
-import type {Block, Worker} from "tesseract.js";
-import {PDFArray, PDFDocument, PDFName, PDFNumber, PDFObject, PDFRawStream, PDFRef} from 'pdf-lib'
+import type {Bbox, Block, Worker} from "tesseract.js";
+import {decodePDFRawStream, PDFArray, PDFDocument, PDFName, PDFNumber, PDFObject, PDFRawStream, PDFRef} from 'pdf-lib'
 import {Jimp, JimpInstance} from 'jimp'
 import {setTimeout} from "timers";
-import {inflate} from "pako";
-
 
 type BoundingBox = {
 	top: number, left: number,
@@ -69,7 +67,7 @@ async function processPDFImage(this: IExecuteFunctions, doc: PDFDocument, ref: P
 			return image as ImageWithName
 		case PDFName.of("FlateDecode"): // probably raw image data in one of many, many shapes
 			image.mimetype = "image/png"
-			const rawPixels = inflate(obj.contents)
+			const rawPixels = decodePDFRawStream(obj).decode()
 			let jimpImage: JimpInstance
 			switch (true) {
 				case colorSpace === PDFName.of("DeviceGray"): // 1-bit (binary) or 8-bit (grayscale) images
@@ -139,7 +137,7 @@ async function processPDFImage(this: IExecuteFunctions, doc: PDFDocument, ref: P
 					}
 
 					const paletteSize = (colorSpaceObject.get(2) as PDFNumber).asNumber() + 1 // e.g. 16 for 4-bit indices (16 colors max)
-					const paletteRaw: Uint8Array = inflate((doc.context.lookup(colorSpaceObject.get(3)) as PDFRawStream).contents)
+					const paletteRaw = decodePDFRawStream(doc.context.lookup(colorSpaceObject.get(3)) as PDFRawStream).decode()
 					// palette is a DataView because we want to set it as UInt8Array but read it as UInt32Array
 					const palette = new DataView(new ArrayBuffer(paletteSize * 4))
 					for (let i = 0; i < paletteSize; i++) {
