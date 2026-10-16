@@ -90,7 +90,7 @@ characters.
 
 Entire paragraphs:
 
-![an image of the same text with Tesseract per-paragraph detections overlaid as one red box covering each paragraph](imgs/paragraphs.png)
+![an image of the same text with Tesseract per-paragraph detections overlaid as a red box covering each paragraph](imgs/paragraphs.png)
 
 Per-line statistics:
 
@@ -98,6 +98,11 @@ Per-line statistics:
 
 If passed a PDF instead of an image, the node may output several items, one for each image in the PDF. Each item will
 have the format described above.
+
+For the Extract Boxes operation, it's possible to draw red boxes around the detected text, according to the specified Granularity (e.g. around each character, word, line or paragraph).
+This is controlled with the **Draw Bounding Boxes** advanced setting (defaults to True):
+
+![an image with some text, and red boxes that surround each word in the image](imgs/bboxes.png)
 
 ## Compatibility
 
@@ -246,6 +251,12 @@ v1.5.0 to v1.5.1!
 
 * Closes [#9](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/9) ("dict.get(...).asNumber is not a function" due to image width or height being PDFRef to PDFNumber instead of straight PDFNumber)
 * Adds new PSM modes AUTO, AUTO_OSD and SPARSE_TEXT_OSD (see values 3, 1 and 12 respectively in <https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html#page-segmentation-method>)
+
+### v1.7.0
+
+* Closes [#10](https://github.com/jreyesr/n8n-nodes-tesseractjs/issues/10) (`NodeOperationError: offset is out of bounds` on 1BPP images) (reported by [@lucas-profoundvision](https://github.com/lucas-profoundvision) via email)
+* Adds new setting Draw Bounding Boxes for the Extract Boxes operation, which draws red rectangles around each detected block of text
+* Fixes the Character Blacklist not actually setting the blacklist on the Tesseract worker
 
 ## Developer info
 
