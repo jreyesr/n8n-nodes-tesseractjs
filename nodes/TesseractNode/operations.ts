@@ -76,15 +76,30 @@ async function processPDFImage(this: IExecuteFunctions, doc: PDFDocument, ref: P
 						// binary image
 						rgbaImage = new Uint8Array(width * height * 4)
 						// rawPixels is like this:
-						// data   |abcdefgh|abcdefgh|...
-						// i      |   0    |   1    |...
-						// j      |01234567|01234567|...
-						for (let i = 0; i < rawPixels.length; i++) { // each i grabs a bunch of 8 pixels
-							for (let j = 0; j < 8; j++) { // j chooses each pixel in the bunch
-								// e.g. for i=1, j=3, then rawPixels[1] & (1 << 4) = rawPixels[1] & 00010000 = picks the 12th pixel in the source array
-								// then multiply by 255 so 0 => 0 and 1 => 255, which are the only two possible values
-								const px = (rawPixels[i] & (1 << (7 - j))) > 0 ? 255 : 0
-								rgbaImage.set([px, px, px, 255], (i * 8 + j) * 4)
+						// data   |abcdefgh|abcdefXX|
+						// y      |   0    |   0    |  row's index, 0=topmost row, goes up to <height>
+						// x      |   0    |   1    |  byte within row, 0=leftmost 8 pixels, goes up to int(width/8)
+						// i      |01234567|012345--|  pixel index within byte, the last byte of each row may have some bits that aren't used
+						// (last byte OF EACH ROW may not be full e.g. if width=5 and height=3 then that's 15 pixels which would fit on 2 bytes of data,
+						// but each row must be padded to entire bytes, so each 5-px row will actually take an entire byte and the last 3 bits of each byte should be ignored:
+						// abcdeXXX|abcdeXXX|abcdeXXX
+						// See https://pdf-lib.js.org/assets/with_large_page_count.pdf section 8.9.3 page 212,
+						// "Byte boundaries shall be ignored, except that each row of sample data shall begin on a byte boundary.
+						// If the number of data bits per row is not a multiple of 8, the end of the row is padded with extra bits to
+						// fill out the last byte. A conforming reader shall ignore these padding bits.")
+						const numBytesInRow = Math.ceil(width / 8) // smallest integer greater than or equal to, ceil(8/8)=1, ceil(9/8)=2
+						let pixelsStored = 0;
+						for (let y = 0; y < height; y++) { // each y grabs an entire row/scanline, starting on top and going down
+							const rowOffset = y * numBytesInRow; // e.g. if image is 5-px wide then numBytesInRow=1, then rowOffset=0 for first row, rowOffset=1 for second row...
+							for (let x = 0; x < numBytesInRow; x++) { // x chooses each byte in the row
+								const byteOffset = rowOffset + x;
+								const validBits = Math.min(8, width - 8*x * 8) // always 8 except on the last byte of the row, where it may be smaller
+								for (let i = 0; i < validBits; i++) { // i is the bit index inside the byte, 0=MSB, 7=LSB
+									// e.g. for 3rd bit in 4th byte of 1st row, then rawPixels[3] & (1 << 2) = rawPixels[3] & 00000100
+									// then multiply by 255 so 0 => 0 and 1 => 255, which are the only two possible values
+									const px = (rawPixels[byteOffset] & (1 << (7 - i))) > 0 ? 255 : 0
+									rgbaImage.set([px, px, px, 255], pixelsStored++ * 4)
+								}
 							}
 						}
 					} else if (bitsPerComponent === 8) {
