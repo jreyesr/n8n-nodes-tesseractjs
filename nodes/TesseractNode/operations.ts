@@ -14,6 +14,7 @@ export type OCROptions = {
 	timeout: number
 	resizeFactor?: number
 	minConfidence: number
+	drawBoxes?: boolean
 }
 
 async function withTimeout<T>(promise: Promise<T>, timeout: number, cleanupFunc?: () => Promise<void>): Promise<T | "timeout"> {
@@ -257,6 +258,24 @@ async function getImagesFromBinary(this: IExecuteFunctions, itemIndex: number, i
 }
 
 
+async function drawBoxesOnImage(image: ImageWithName['data'], boxes: Bbox[]) {
+	const jimpImage = await Jimp.fromBuffer(image)
+
+	for (let box of boxes) {
+		for (let x = box.x0 - 1; x <= box.x1 + 1; x++) { // draw the two horizontal lines at y0 and y1
+			jimpImage.setPixelColor(0xff0000ff, x, box.y0 - 1)
+			jimpImage.setPixelColor(0xff0000ff, x, box.y1 + 1)
+		}
+
+		for (let y = box.y0 - 1; y <= box.y1 + 1; y++) { // draw the two vertical lines at x0 and x1
+			jimpImage.setPixelColor(0xff0000ff, box.x0 - 1, y)
+			jimpImage.setPixelColor(0xff0000ff, box.x1 + 1, y)
+		}
+	}
+
+	return await jimpImage.getBuffer('image/png')
+}
+
 export async function performOCR(this: IExecuteFunctions, worker: Worker, item: INodeExecutionData, itemIndex: number, imageFieldName: string, options: OCROptions): Promise<INodeExecutionData[]> {
 	const images = await getImagesFromBinary.apply(this, [itemIndex, imageFieldName, options.resizeFactor ?? 100])
 	this.logger.debug("images fetched", {num: images.length})
@@ -334,6 +353,11 @@ export async function extractBoxes(this: IExecuteFunctions, worker: Worker, item
 						confidence?: number
 					}) => (blockInfo.confidence ?? options.minConfidence) >= options.minConfidence))
 			};
+
+			if (options.drawBoxes) {
+				image = await drawBoxesOnImage(image, (newItem.json.blocks as { bbox: Bbox }[]).map((x) => x.bbox))
+			}
+
 			newItem.binary!["ocr"] = await this.helpers.prepareBinaryData(image, name, mimetype)
 		}
 		return newItem;

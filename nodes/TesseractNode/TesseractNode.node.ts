@@ -346,6 +346,19 @@ export class TesseractNode implements INodeType {
 						default: 0,
 						description: 'Any results whose confidence is lower than this value will be discarded (confidence must be ≥ this value)',
 					},
+					{
+						displayName: 'Draw Bounding Boxes',
+						name: 'drawBoxes',
+						type: 'boolean',
+						description: 'Whether to draw boxes on the binary output around the detected paragraphs/words/characters',
+						default: true,
+						displayOptions: {
+							show: {
+								'/operation': ['boxes'],
+								outputBinary: [true],
+							}
+						}
+					}
 				]
 			}
 		],
@@ -395,12 +408,14 @@ export class TesseractNode implements INodeType {
 				}
 				const timeout = this.getNodeParameter('options.timeout', itemIndex, 0) as number;
 				const resizeFactor = this.getNodeParameter('options.resizeFactor', itemIndex, 100) as number
+				const drawBoxes = operation === "boxes" && this.getNodeParameter("options.drawBoxes", itemIndex, true) as boolean
 				const minConfidence = this.getNodeParameter("options.minConfidence", itemIndex, 0) as number
 				const options: OCROptions = {
 					bbox,
 					timeout,
 					resizeFactor,
-					minConfidence
+					minConfidence,
+					drawBoxes,
 				}
 				switch (operation) {
 					case "ocr":
